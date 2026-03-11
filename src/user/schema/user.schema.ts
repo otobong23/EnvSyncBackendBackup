@@ -22,9 +22,6 @@ export class User extends Document {
   @Prop({ type: String })
   refreshToken?: string;
 
-  @Prop({ type: Boolean, default: false })
-  isEmailVerified: boolean;
-
   @Prop({ required: false })
   password: string;
 

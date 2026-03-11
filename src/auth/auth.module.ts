@@ -6,9 +6,10 @@ import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './strategy/google.strategy';
 import { JwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
+import { OtpModule } from 'src/otp/otp.module';
 
 @Module({
-  imports: [PassportModule, UserModule],
+  imports: [PassportModule, UserModule, OtpModule],
   controllers: [AuthController],
   providers: [AuthService, GithubStrategy, GoogleStrategy, JwtService],
 })
