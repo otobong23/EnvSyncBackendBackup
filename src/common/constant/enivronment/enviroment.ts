@@ -31,4 +31,7 @@ export const ENVIRONMENT = {
     CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     CALLBACK: 'http://localhost:4000/auth/google/callback',
   },
+  WEB: {
+    ORIGIN: process.env.ORIGIN
+  }
 };

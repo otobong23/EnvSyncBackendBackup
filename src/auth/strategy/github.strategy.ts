@@ -16,15 +16,15 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
 
   async validate(
     accessToken: string,
-    refreshToken: string,
     profile: any,
     done: Function,
   ) {
     const fullName = profile._json?.name || profile.username;
+    console.log(profile)
 
     const user = {
       provider: 'github',
-      id: profile.id,
+      profileId: profile.id,
       fullName,
       email: profile.emails?.[0]?.value || null,
       accessToken,

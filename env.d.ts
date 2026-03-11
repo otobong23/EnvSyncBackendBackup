@@ -18,6 +18,8 @@ declare namespace NodeJS {
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
 
+    ORIGIN: string;
+
     NODE_ENV: "development" | "production" | "test";
   }
 }

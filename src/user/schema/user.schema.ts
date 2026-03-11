@@ -36,6 +36,9 @@ export class User extends Document {
   })
   provider: AuthProvider;
 
+  @Prop({ type: String })
+  providerId: string
+
   @Prop({ default: null })
   profilePic?: string;
 

@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDTO } from 'src/user/dto/create.user.dto';
 import { generateRandomTokenForLoggedIn } from 'src/common/constant/generate.string';
 import { AuthProvider } from 'src/user/enum/auth-provider.enum';
-import { googleAuth } from './interface/utility-interface';
+import { githubAuth, googleAuth } from './interface/utility-interface';
 import { ENVIRONMENT } from 'src/common/constant/enivronment/enviroment';
 import { comparedHashed, HashData } from 'src/common/hashed/hashed.data';
 import { ForgetPasswordDto, RequestOtpDto, ResetPasswordDto, VerifyEmailDto, VerifyForgetPasswordDto } from './dto/auth.dto';
@@ -168,8 +168,7 @@ export class AuthService {
       payload = {
          userName: payload.userName,
          _id: payload._id,
-         firstName: payload.firstName,
-         lastName: payload.lastName,
+         fullName: payload.fullName,
          email: payload.email,
       };
 
@@ -244,7 +243,7 @@ export class AuthService {
    // }
 
    async googleAuth(googleUser: googleAuth) {
-      const { email, firstName, lastName } = googleUser;
+      const { email, fullName, sub } = googleUser;
 
       if (!email) {
          throw new BadRequestException('Google account has no email');
@@ -255,9 +254,9 @@ export class AuthService {
       if (!user) {
          // Register new Google user
          const payload = {
-            firstName,
-            lastName,
+            fullName,
             email,
+            providerId: sub,
             provider: AuthProvider.GOOGLE,
             profilePic: googleUser.profilePic,
          };
@@ -280,8 +279,8 @@ export class AuthService {
       };
    }
 
-   async githubAuth(githubUser: googleAuth) {
-      const { email, firstName, lastName } = githubUser;
+   async githubAuth(githubUser: githubAuth) {
+      const { email, fullName, profileId } = githubUser;
 
       if (!email) {
          throw new BadRequestException('Account has no email');
@@ -292,10 +291,10 @@ export class AuthService {
       if (!user) {
          // Register user
          const payload = {
-            firstName,
-            lastName,
+            fullName,
             email,
             provider: AuthProvider.GITHUB,
+            providerId: profileId,
             profilePic: githubUser.profilePic,
          };
 

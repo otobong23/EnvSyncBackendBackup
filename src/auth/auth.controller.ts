@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateUserDTO } from 'src/user/dto/create.user.dto';
@@ -6,6 +6,7 @@ import { LoginResponse } from 'src/user/dto/user.dto';
 import { Serialize } from 'src/common/interceptor/custom.interceptor';
 import { LoginUserDTO } from './dto/login.user.dto';
 import { ForgetPasswordDto, RequestOtpDto, ResetPasswordDto, VerifyForgetPasswordDto } from './dto/auth.dto';
+import { ENVIRONMENT } from 'src/common/constant/enivronment/enviroment';
 
 @Controller('auth')
 export class AuthController {
@@ -55,8 +56,9 @@ export class AuthController {
 
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  githubCallback(@Req() req) {
-    return req.user;
+  async githubCallback(@Req() req, @Res() res) {
+    const { accessToken } = await this.authService.githubAuth(req.user);
+    return res.redirect(`${ENVIRONMENT.WEB.ORIGIN}/auth/success?token=${accessToken}`);
   }
 
   @Get('google')
@@ -65,7 +67,8 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleCallback(@Req() req) {
-    return req.user;
+  async googleCallback(@Req() req, @Res() res) {
+    const { accessToken } = await this.authService.googleAuth(req.user);
+    return res.redirect(`${ENVIRONMENT.WEB.ORIGIN}/auth/success?token=${accessToken}`);
   }
 }
