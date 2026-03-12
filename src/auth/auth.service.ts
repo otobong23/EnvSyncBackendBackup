@@ -192,6 +192,8 @@ export class AuthService {
          }
 
          const token = await this.token(user);
+         user.refreshToken = token.refreshToken;
+         await user.save();
          return token.accessToken;
       } catch (e) {
          throw new BadRequestException('Invalid refresh token');

@@ -1,0 +1,59 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Octokit } from '@octokit/rest';
+
+@Injectable()
+export class GithubService {
+
+  private getClient(accessToken: string): Octokit {
+    return new Octokit({ auth: accessToken });
+  }
+
+  // Fetch all repos the user has access to (own + org)
+  async getUserRepos(accessToken: string) {
+    const octokit = this.getClient(accessToken);
+
+    const { data } = await octokit.repos.listForAuthenticatedUser({
+      sort: 'updated',
+      per_page: 100,
+      affiliation: 'owner,collaborator,organization_member',
+    });
+
+    // Return only what EnvSync needs
+    return data.map((repo) => ({
+      repoId: repo.id,
+      name: repo.name,
+      fullName: repo.full_name,       // "org/repo-name"
+      url: repo.html_url,
+      defaultBranch: repo.default_branch,
+      private: repo.private,
+      owner: repo.owner.login,
+    }));
+  }
+
+  // Fetch a single repo (used during project creation to validate)
+  async getRepo(accessToken: string, owner: string, repo: string) {
+    const octokit = this.getClient(accessToken);
+    const { data } = await octokit.repos.get({ owner, repo });
+
+    return {
+      repoId: data.id,
+      name: data.name,
+      fullName: data.full_name,
+      url: data.html_url,
+      defaultBranch: data.default_branch,
+      private: data.private,
+    };
+  }
+
+  // Fetch teams for org repos (used for member sync)
+  async getRepoCollaborators(accessToken: string, owner: string, repo: string) {
+    const octokit = this.getClient(accessToken);
+    const { data } = await octokit.repos.listCollaborators({ owner, repo });
+
+    return data.map((c) => ({
+      githubId: c.id,
+      username: c.login,
+      role: c.role_name, // "admin", "maintain", "write", "read"
+    }));
+  }
+}

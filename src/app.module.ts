@@ -10,6 +10,8 @@ import { PassportModule } from '@nestjs/passport';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { UserModule } from './user/user.module';
+import { ProjectModule } from './project/project.module';
+import { GithubModule } from './github/github.module';
 
 configDotenv()
 
@@ -28,7 +30,9 @@ configDotenv()
     }),
     PassportModule,
     AuthModule,
-    UserModule
+    UserModule,
+    ProjectModule,
+    GithubModule
   ],
   controllers: [AppController],
   providers: [AppService],
