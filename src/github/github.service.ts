@@ -45,15 +45,37 @@ export class GithubService {
     };
   }
 
-  // Fetch teams for org repos (used for member sync)
-  async getRepoCollaborators(accessToken: string, owner: string, repo: string) {
-    const octokit = this.getClient(accessToken);
-    const { data } = await octokit.repos.listCollaborators({ owner, repo });
+  // // Fetch teams for org repos (used for member sync)
+  // async getRepoCollaborators(accessToken: string, owner: string, repo: string) {
+  //   const octokit = this.getClient(accessToken);
+  //   const { data } = await octokit.repos.listCollaborators({ owner, repo });
 
-    return data.map((c) => ({
-      githubId: c.id,
-      username: c.login,
-      role: c.role_name, // "admin", "maintain", "write", "read"
-    }));
+  //   return data.map((c) => ({
+  //     githubId: c.id,
+  //     username: c.login,
+  //     role: c.role_name, // "admin", "maintain", "write", "read"
+  //   }));
+  // }
+
+  async createWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ) {
+    const octokit = this.getClient(accessToken);
+
+    const { data } = await octokit.repos.createWebhook({
+      owner,
+      repo,
+      config: {
+        url: `${process.env.API_URL}/github/webhook`,
+        content_type: 'json',
+        secret: process.env.GITHUB_WEBHOOK_SECRET,
+        insecure_ssl: '0',
+      },
+      events: ['push', 'pull_request'],
+    });
+
+    return data;
   }
 }
