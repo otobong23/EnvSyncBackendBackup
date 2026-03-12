@@ -14,13 +14,10 @@ export class User extends Document {
   email: string;
 
   @Prop({ type: String })
-  accessToken?: string;
-
-  @Prop({ type: String })
-  randomToken?: string;
-
-  @Prop({ type: String })
   refreshToken?: string;
+
+  @Prop({ type: Boolean, default: false })
+  isEmailVerified: boolean;
 
   @Prop({ required: false })
   password: string;
@@ -38,6 +35,9 @@ export class User extends Document {
 
   @Prop({ type: String })
   providerId: string
+
+  @Prop({ type: String })
+  providerToken: string
 
   @Prop({ default: null })
   profilePic?: string;

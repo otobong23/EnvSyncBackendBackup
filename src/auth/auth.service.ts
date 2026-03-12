@@ -1,10 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDTO } from 'src/user/dto/create.user.dto';
-import { generateRandomTokenForLoggedIn } from 'src/common/constant/generate.string';
 import { AuthProvider } from 'src/user/enum/auth-provider.enum';
 import { githubAuth, googleAuth } from './interface/utility-interface';
 import { ENVIRONMENT } from 'src/common/constant/enivronment/enviroment';
@@ -13,6 +10,7 @@ import { ForgetPasswordDto, RequestOtpDto, ResetPasswordDto, VerifyEmailDto, Ver
 import { LoginUserDTO } from './dto/login.user.dto';
 import { OtpService } from 'src/otp/service/otp.service';
 import { OtpType } from 'src/otp/enum/opt.type.enum';
+import { User } from 'src/user/schema/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -47,23 +45,20 @@ export class AuthService {
          throw new BadRequestException('Invalid Credentials');
       }
 
-      // if (!user.isEmailVerified) {
-      //    await this.otpService.sendOtp({
-      //       email: user.email,
-      //       type: OtpType.EMAIL_VERIFICATION,
-      //    });
-      //    throw new BadRequestException(
-      //       'You have to verify you account before logging in. Check your mail for otp',
-      //    );
-      // }
-
-      const randomToken = await generateRandomTokenForLoggedIn();
+      if (!user.isEmailVerified) {
+         await this.otpService.sendOtp({
+            email: user.email,
+            type: OtpType.EMAIL_VERIFICATION,
+         });
+         throw new BadRequestException(
+            'You have to verify you account before logging in. Check your mail for otp',
+         );
+      }
 
       const token = await this.token(user);
       const accessToken = token.accessToken;
       const refreshToken = token.refreshToken;
       user.refreshToken = refreshToken;
-      user.randomToken = randomToken;
       await user.save();
       return {
          name: 'khaldi',
@@ -72,38 +67,38 @@ export class AuthService {
       };
    }
 
-   // async verifyEmail(payload: VerifyEmailDto) {
-   //    const { email, code } = payload;
-   //    // console.log('pay ser', payload);
-   //    const user = await this.userService.findUserByEmail(email);
-   //    // console.log('user', user);
-   //    if (user.isEmailVerified) {
-   //       throw new BadRequestException('Your account is verify already');
-   //    }
-   //    await this.otpService.verifyOTP({
-   //       email: email,
-   //       code: code,
-   //       type: OtpType.EMAIL_VERIFICATION,
-   //    });
+   async verifyEmail(payload: VerifyEmailDto) {
+      const { email, code } = payload;
+      // console.log('pay ser', payload);
+      const user = await this.userService.findUserByEmail(email);
+      // console.log('user', user);
+      if (user.isEmailVerified) {
+         throw new BadRequestException('Your account is verify already');
+      }
+      await this.otpService.verifyOTP({
+         email: email,
+         code: code,
+         type: OtpType.EMAIL_VERIFICATION,
+      });
 
-   //    // console.log('sucesss');
+      // console.log('sucesss');
 
-   //    user.isEmailVerified = true;
+      user.isEmailVerified = true;
 
-   //    await user.save();
-   //    // console.log('new user', user);
+      await user.save();
+      // console.log('new user', user);
 
-   //    const tokens = await this.token(user);
-   //    // console.log('token', tokens);
+      const tokens = await this.token(user);
+      // console.log('token', tokens);
 
-   //    return {
-   //       message:
-   //          'Email verified successfully. You are now being redirected to your dashboard.',
-   //       result: user,
-   //       accessToken: tokens.accessToken,
-   //       refreshToken: tokens.refreshToken,
-   //    };
-   // }
+      return {
+         message:
+            'Email verified successfully. You are now being redirected to your dashboard.',
+         result: user,
+         accessToken: tokens.accessToken,
+         refreshToken: tokens.refreshToken,
+      };
+   }
 
    async forgotPassword(payload: ForgetPasswordDto) {
       const { email } = payload;
@@ -164,9 +159,9 @@ export class AuthService {
       return otp;
    }
 
-   async token(payload: any) {
+   async token(payload: Partial<User>) {
       payload = {
-         userName: payload.userName,
+         provider: payload.provider,
          _id: payload._id,
          fullName: payload.fullName,
          email: payload.email,
@@ -267,11 +262,8 @@ export class AuthService {
       }
 
       // Always refresh tokens when signing in
-      const randomToken = await generateRandomTokenForLoggedIn();
       const tokens = await this.userService.generateAuthTokens(user);
       user.refreshToken = tokens.refreshToken;
-      user.accessToken = tokens.accessToken;
-      user.randomToken = randomToken;
       await user.save();
       return {
          user,
@@ -304,11 +296,9 @@ export class AuthService {
       }
 
       // Always refresh tokens when signing in
-      const randomToken = await generateRandomTokenForLoggedIn();
       const tokens = await this.userService.generateAuthTokens(user);
       user.refreshToken = tokens.refreshToken;
-      user.accessToken = tokens.accessToken;
-      user.randomToken = randomToken;
+      user.providerToken = githubUser.accessToken
       await user.save();
       return {
          user,

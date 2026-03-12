@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from './schema/user.schema';
 import { Model } from 'mongoose';
@@ -7,13 +7,15 @@ import { ENVIRONMENT } from 'src/common/constant/enivronment/enviroment';
 import { HashData } from 'src/common/hashed/hashed.data';
 import { UpdateUserDTO } from './dto/update.user.dto';
 import { AuthProvider } from './enum/auth-provider.enum';
-import { generateRandomTokenForLoggedIn } from 'src/common/constant/generate.string';
+import { OtpType } from 'src/otp/enum/opt.type.enum';
+import { OtpService } from 'src/otp/service/otp.service';
 
 @Injectable()
 export class UserService {
    constructor(
       @InjectModel(User.name) private userModel: Model<User>,
       private jwtService: JwtService,
+      private otpService: OtpService
    ) { }
 
    /**
@@ -96,13 +98,13 @@ export class UserService {
    /**
     * Finds a user by a random token.
     */
-   async findUserByToken(randomToken: string): Promise<User> {
+   async findUserByToken(randomToken: string): Promise<User> { // questionable service
       const user = await this.userModel.findOne({ randomToken });
       if (!user) {
          throw new NotFoundException('User not found');
       }
       return user;
-   }
+   } 
 
    /**
     * Finds a user by email.
@@ -113,17 +115,6 @@ export class UserService {
          throw new NotFoundException('User not found');
       }
       return user;
-   }
-
-   /**
-    * Approves a user as a talent.
-    */
-   async approveUserAsTalent(userId: string) {
-      return this.userModel.findOneAndUpdate(
-         { _id: userId },
-         { isTalent: true },
-         { new: true },
-      );
    }
 
    /**
@@ -154,8 +145,8 @@ export class UserService {
    async registerUser(payload: Partial<User>) {
       const { password } = payload;
 
-      let hashedPassword;
-      if (password) hashedPassword = await HashData(password);
+      if(!password) throw new ConflictException('Password Not found in payload');
+      let hashedPassword = await HashData(password);
 
       const newUser = await this.userModel.create({
          ...payload,
@@ -164,13 +155,12 @@ export class UserService {
 
       const tokenData = await this.generateAuthTokens(newUser);
       newUser.refreshToken = tokenData.refreshToken;
-      newUser.accessToken = tokenData.accessToken;
       await newUser.save();
 
-      //  await this.otpService.sendOtp({
-      //    email: newUser.email,
-      //    type: OtpType.EMAIL_VERIFICATION,
-      //  });
+       await this.otpService.sendOtp({
+         email: newUser.email,
+         type: OtpType.EMAIL_VERIFICATION,
+       });
 
       delete newUser['_doc'].password;
       return { newUser, accessToken: tokenData.accessToken };
@@ -181,11 +171,9 @@ export class UserService {
          ...dto,
       });
       const token = await this.generateAuthTokens(googleUser);
-      const randomToken = await generateRandomTokenForLoggedIn();
-      googleUser.accessToken = token.accessToken;
       googleUser.refreshToken = token.refreshToken;
+      googleUser.isEmailVerified = true;
       googleUser.provider = 'google' as AuthProvider;
-      googleUser.randomToken = randomToken;
       await googleUser.save();
       return { googleUser, accessToken: token.accessToken };
    }
@@ -195,11 +183,9 @@ export class UserService {
          ...dto,
       });
       const token = await this.generateAuthTokens(githubUser);
-      const randomToken = await generateRandomTokenForLoggedIn();
-      githubUser.accessToken = token.accessToken;
       githubUser.refreshToken = token.refreshToken;
+      githubUser.isEmailVerified = true;
       githubUser.provider = 'github' as AuthProvider;
-      githubUser.randomToken = randomToken;
       await githubUser.save();
       return { githubUser, accessToken: token.accessToken };
    }
